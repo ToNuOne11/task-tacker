@@ -3,6 +3,7 @@ package ru.shadrinsa.task_tracker_api.api.controllers;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import ru.shadrinsa.task_tracker_api.api.dto.AckDto;
 import ru.shadrinsa.task_tracker_api.api.dto.ProjectDto;
 import ru.shadrinsa.task_tracker_api.api.exeptions.BadRequestException;
 import ru.shadrinsa.task_tracker_api.api.exeptions.NotFoundException;
@@ -64,11 +65,7 @@ public class ProjectController {
             throw new BadRequestException("name is empty.");
         }
 
-        ProjectEntity project = projectRepository
-                .findById(project_id)
-                .orElseThrow(() ->
-                        new NotFoundException("Project not found")
-                );
+        ProjectEntity project = getProjectOrThrowException(project_id);
 
         projectRepository
                 .findByName(name)
@@ -80,5 +77,19 @@ public class ProjectController {
         project = projectRepository.saveAndFlush(project);
 
         return projectDtoFactory.makeProjectDto(project);
+    }
+    @DeleteMapping(DELETE_PROJECT)
+    public AckDto deleteProject(@PathVariable Long project_id){
+        ProjectEntity project = getProjectOrThrowException(project_id);
+        projectRepository.deleteById(project_id);
+        return AckDto.makeDefault(true);
+    }
+
+    private ProjectEntity getProjectOrThrowException(Long project_id) {
+        return projectRepository
+                .findById(project_id)
+                .orElseThrow(() ->
+                        new NotFoundException("Project not found")
+                );
     }
 }
