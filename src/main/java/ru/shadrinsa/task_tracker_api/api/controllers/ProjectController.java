@@ -28,8 +28,11 @@ public class ProjectController {
                 .ifPresent(project -> {
                      throw new BadRequestException("Project already exists.");
                 });
-
-        throw new RuntimeException();
+        ProjectEntity project = projectRepository.saveAndFlush(
+                ProjectEntity.builder()
+                        .name(name)
+                        .build()
+        );
+        return projectDtoFactory.makeProjectDto(project);
     }
-
 }
