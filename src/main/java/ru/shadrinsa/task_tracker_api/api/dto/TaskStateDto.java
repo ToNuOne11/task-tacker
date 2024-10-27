@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.time.Instant;
+import java.util.List;
 
 @Data
 @Builder
@@ -20,4 +21,7 @@ public class TaskStateDto {
     @NonNull
     @JsonProperty("created_at")
     private Instant createdAt;
+
+    @NonNull
+    List<TaskDto> tasks;
 }
