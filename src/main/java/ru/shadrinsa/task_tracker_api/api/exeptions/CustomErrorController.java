@@ -22,7 +22,9 @@ public class CustomErrorController implements ErrorController {
     public ResponseEntity<ErrorDTO> error(WebRequest webRequest){
         Map<String, Object> attributes = errorAttributes.getErrorAttributes(
                 webRequest,
-                ErrorAttributeOptions.of(ErrorAttributeOptions.Include.EXCEPTION, ErrorAttributeOptions.Include.MESSAGE)
+                ErrorAttributeOptions.of(ErrorAttributeOptions.Include.STATUS,
+                        ErrorAttributeOptions.Include.ERROR,
+                        ErrorAttributeOptions.Include.MESSAGE)
         );
         return ResponseEntity
                 .status((Integer) attributes.get("status"))
