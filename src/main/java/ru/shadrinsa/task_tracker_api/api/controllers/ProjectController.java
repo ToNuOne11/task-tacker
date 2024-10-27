@@ -26,9 +26,10 @@ public class ProjectController {
     public static final String FETCH_PROJECT = "/api/projects";
     public static final String CREATE_PROJECT = "/api/projects";
     public static final String EDIT_PROJECT = "/api/projects/{project_id}";
+    public static final String DELETE_PROJECT = "/api/projects/{project_id}";
 
 
-    @PostMapping(FETCH_PROJECT)
+    @GetMapping(FETCH_PROJECT)
     public List<ProjectDto> fetchProjects(@RequestParam(value = "prefix_name", required = false)Optional<String> optionalPrefixName){
         optionalPrefixName = optionalPrefixName.filter(prefixName -> !prefixName.trim().isEmpty());
         Stream<ProjectEntity> projectStream = optionalPrefixName
