@@ -15,7 +15,7 @@ import java.time.Instant;
 @Builder
 public class TaskEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     @Column(name = "name", columnDefinition = "text")
     private String name;
