@@ -10,7 +10,10 @@ import ru.shadrinsa.task_tracker_api.api.factories.ProjectDtoFactory;
 import ru.shadrinsa.task_tracker_api.store.entities.ProjectEntity;
 import ru.shadrinsa.task_tracker_api.store.repositories.ProjectRepository;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 @Transactional
 @RestController
@@ -20,9 +23,21 @@ public class ProjectController {
     final private ProjectDtoFactory projectDtoFactory;
     final private ProjectRepository projectRepository;
 
+    public static final String FETCH_PROJECT = "/api/projects";
     public static final String CREATE_PROJECT = "/api/projects";
     public static final String EDIT_PROJECT = "/api/projects/{project_id}";
 
+
+    @PostMapping(FETCH_PROJECT)
+    public List<ProjectDto> fetchProjects(@RequestParam(value = "prefix_name", required = false)Optional<String> optionalPrefixName){
+        optionalPrefixName = optionalPrefixName.filter(prefixName -> !prefixName.trim().isEmpty());
+        Stream<ProjectEntity> projectStream = optionalPrefixName
+                .map(projectRepository::streamAllByNameStartsWithIgnoreCase)
+                .orElseGet(projectRepository::streamAll);
+        return projectStream
+                .map(projectDtoFactory::makeProjectDto)
+                .toList();
+    }
 
     @PostMapping(CREATE_PROJECT)
     public ProjectDto createProject(@RequestParam String name){
