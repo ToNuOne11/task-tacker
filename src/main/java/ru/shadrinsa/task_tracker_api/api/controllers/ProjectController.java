@@ -34,7 +34,7 @@ public class ProjectController {
         optionalPrefixName = optionalPrefixName.filter(prefixName -> !prefixName.trim().isEmpty());
         Stream<ProjectEntity> projectStream = optionalPrefixName
                 .map(projectRepository::streamAllByNameStartsWithIgnoreCase)
-                .orElseGet(projectRepository::streamAll);
+                .orElseGet(projectRepository::streamAllBy);
         return projectStream
                 .map(projectDtoFactory::makeProjectDto)
                 .toList();
