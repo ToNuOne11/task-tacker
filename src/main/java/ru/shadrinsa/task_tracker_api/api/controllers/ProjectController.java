@@ -3,10 +3,10 @@ package ru.shadrinsa.task_tracker_api.api.controllers;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import ru.shadrinsa.task_tracker_api.api.controllers.helpers.ControllerHelper;
 import ru.shadrinsa.task_tracker_api.api.dto.AckDto;
 import ru.shadrinsa.task_tracker_api.api.dto.ProjectDto;
 import ru.shadrinsa.task_tracker_api.api.exeptions.BadRequestException;
-import ru.shadrinsa.task_tracker_api.api.exeptions.NotFoundException;
 import ru.shadrinsa.task_tracker_api.api.factories.ProjectDtoFactory;
 import ru.shadrinsa.task_tracker_api.store.entities.ProjectEntity;
 import ru.shadrinsa.task_tracker_api.store.repositories.ProjectRepository;
@@ -23,6 +23,7 @@ public class ProjectController {
 
     final private ProjectDtoFactory projectDtoFactory;
     final private ProjectRepository projectRepository;
+    final private ControllerHelper controllerHelper;
 
     public static final String FETCH_PROJECT = "/api/projects";
     public static final String CREATE_OR_UPDATE_PROJECT = "/api/projects";
@@ -54,7 +55,7 @@ public class ProjectController {
         }
 
         final ProjectEntity project = optionalProjectId
-                .map(this::getProjectOrThrowException)
+                .map(controllerHelper::getProjectOrThrowException)
                 .orElseGet(() -> ProjectEntity.builder().build());
 
         optionalProjectName
@@ -75,16 +76,10 @@ public class ProjectController {
 
     @DeleteMapping(DELETE_PROJECT)
     public AckDto deleteProject(@PathVariable Long project_id) {
-        ProjectEntity project = getProjectOrThrowException(project_id);
+        controllerHelper.getProjectOrThrowException(project_id);
         projectRepository.deleteById(project_id);
         return AckDto.makeDefault(true);
     }
 
-    private ProjectEntity getProjectOrThrowException(Long project_id) {
-        return projectRepository
-                .findById(project_id)
-                .orElseThrow(() ->
-                        new NotFoundException("Project not found")
-                );
-    }
+
 }
