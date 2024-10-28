@@ -6,7 +6,7 @@ import ru.shadrinsa.task_tracker_api.store.entities.TaskEntity;
 
 @Component
 public class TaskDtoFactory {
-    TaskDto makeTaskDto(TaskEntity entity){
+    public TaskDto makeTaskDto(TaskEntity entity){
         return TaskDto.builder()
                 .id(entity.getId())
                 .name(entity.getName())
