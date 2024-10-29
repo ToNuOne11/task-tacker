@@ -27,7 +27,8 @@ public class TaskStateController {
 
     public static final String GET_TASK_STATES = "/api/projects/{project_id}/task-states";
     public static final String CREATE_TASK_STATES = "/api/projects/{project_id}/task-state";
-    public static final String UPDATE_TASK_STATES = "/api/projects/task-state/{task_state_id}";
+    public static final String UPDATE_TASK_STATES = "/api/task-state/{task_state_id}";
+    public static final String CHANGE_TASK_STATE_POSITION = "/api/task-state/{task_state_id}/position/change";
 
 
     @GetMapping(GET_TASK_STATES)
@@ -56,7 +57,7 @@ public class TaskStateController {
             if (taskState.getName().equalsIgnoreCase(taskStateName)) {
                 throw new BadRequestException("Task state already exists.");
             }
-            if (!taskState.getRightTaskState().isPresent()) {
+            if (taskState.getRightTaskState().isEmpty()) {
                 optionalAnotherTaskState = Optional.of(taskState);
                 break;
             }
@@ -83,9 +84,10 @@ public class TaskStateController {
 
         return taskStateDtoFactory.makeTaskStateDto(savedTaskState);
     }
+
     @PatchMapping(UPDATE_TASK_STATES)
     public TaskStateDto updateTaskState(@PathVariable(name = "task_state_id") Long taskStateId,
-                                        @RequestParam(name = "task_state_name") String taskStateName){
+                                        @RequestParam(name = "task_state_name") String taskStateName) {
         if (taskStateName.trim().isEmpty()) {
             throw new BadRequestException("Task state name is empty");
         }
@@ -95,7 +97,7 @@ public class TaskStateController {
                         taskState.getProject().getId(),
                         taskStateName)
                 .filter(anotherTaskState -> !anotherTaskState.getId().equals(taskStateId))
-                .ifPresent(anotherTaskState ->{
+                .ifPresent(anotherTaskState -> {
                     throw new BadRequestException("Task state already exists.");
                 });
 
@@ -106,10 +108,89 @@ public class TaskStateController {
         return taskStateDtoFactory.makeTaskStateDto(taskState);
     }
 
-    private TaskStateEntity getTaskStateOrThrowException(Long taskStateId){
+    @PatchMapping(CHANGE_TASK_STATE_POSITION)
+    public TaskStateDto changeTaskStatePosition(@PathVariable(name = "task_state_id") Long taskStateId,
+                                           @RequestParam(name = "left_task_state_id", required = false) Optional<Long> optionalLeftTaskStateId) {
+        TaskStateEntity changeTaskState = getTaskStateOrThrowException(taskStateId);
+
+        ProjectEntity project = changeTaskState.getProject();
+
+
+        Optional<TaskStateEntity> optionalNewLeftTaskState = optionalLeftTaskStateId
+                .map(leftTaskStateId -> {
+
+                    if (taskStateId.equals(leftTaskStateId)) {
+                        throw new BadRequestException("Left task state equals task state id.");
+                    }
+
+                    TaskStateEntity leftTaskStateEntity = getTaskStateOrThrowException(leftTaskStateId);
+
+                    if (!project.getId().equals(leftTaskStateEntity.getProject().getId())) {
+                        throw new BadRequestException("Task states in different projects");
+                    }
+
+                    return leftTaskStateEntity;
+                });
+
+        Optional<TaskStateEntity> optionalNewRightTaskState;
+        if (optionalNewLeftTaskState.isEmpty()) {
+            optionalNewRightTaskState = project
+                    .getTaskStates()
+                    .stream()
+                    .filter(anotherTaskState -> anotherTaskState.getLeftTaskState().isEmpty())
+                    .findAny();
+        } else {
+            optionalNewRightTaskState = optionalNewLeftTaskState
+                    .get()
+                    .getRightTaskState();
+        }
+
+        Optional<TaskStateEntity> optionalOldLeftTaskState = changeTaskState.getLeftTaskState();
+        Optional<TaskStateEntity> optionalOldRightTaskState = changeTaskState.getRightTaskState();
+
+        optionalOldLeftTaskState
+                .ifPresent(it -> {
+                    it.setRightTaskState(optionalOldRightTaskState.orElse(null));
+                    taskStateRepository.saveAndFlush(it);
+                });
+
+        optionalOldRightTaskState
+                .ifPresent(it -> {
+                    it.setLeftTaskState(optionalOldLeftTaskState.orElse(null));
+                    taskStateRepository.saveAndFlush(it);
+                });
+
+        if(optionalNewLeftTaskState.isPresent()){
+            TaskStateEntity newLeftTaskState = optionalNewLeftTaskState.get();
+            newLeftTaskState.setRightTaskState(changeTaskState);
+            changeTaskState.setLeftTaskState(newLeftTaskState);
+
+        }
+        else {
+            changeTaskState.setLeftTaskState(null);
+        }
+        if(optionalNewRightTaskState.isPresent()){
+            TaskStateEntity newRightTaskState = optionalNewRightTaskState.get();
+            newRightTaskState.setLeftTaskState(changeTaskState);
+            changeTaskState.setRightTaskState(newRightTaskState);
+        }
+        else {
+            changeTaskState.setRightTaskState(null);
+        }
+        changeTaskState = taskStateRepository.saveAndFlush(changeTaskState);
+
+        optionalNewLeftTaskState
+                .ifPresent(taskStateRepository::saveAndFlush);
+        optionalNewRightTaskState
+                .ifPresent(taskStateRepository::saveAndFlush);
+
+        return taskStateDtoFactory.makeTaskStateDto(changeTaskState);
+    }
+
+    private TaskStateEntity getTaskStateOrThrowException(Long taskStateId) {
         return taskStateRepository
                 .findById(taskStateId)
-                .orElseThrow(()-> new NotFoundException("Task state not found"));
+                .orElseThrow(() -> new NotFoundException("Task state not found"));
     }
 }
 
